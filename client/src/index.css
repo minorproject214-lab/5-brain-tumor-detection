@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Syne", sans-serif;
+  --font-body: "DM Sans", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-brand-50: #edfcf9;
+  --color-brand-100: #d2f7f1;
+  --color-brand-200: #a9ede4;
+  --color-brand-300: #6fddd2;
+  --color-brand-400: #35c5ba;
+  --color-brand-500: #1aaba1;
+  --color-brand-600: #128884;
+  --color-brand-700: #136d6a;
+  --color-brand-800: #155655;
+  --color-brand-900: #164847;
+
+  --color-dark-900: #030d0d;
+  --color-dark-800: #071515;
+  --color-dark-700: #0d1f1f;
+  --color-dark-600: #122828;
+  --color-dark-500: #1a3535;
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-scan: scan 2s linear infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-dark-900);
+  color: white;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      rgba(26, 171, 161, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 80% 80%,
+      rgba(26, 171, 161, 0.06),
+      transparent
+    );
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-dark-800);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-700);
+  border-radius: 9999px;
+}
+
+/* Utility classes */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-hover:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s;
+}
+
+.btn-primary {
+  background: var(--color-brand-500);
+  color: white;
+  font-family: var(--font-display);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+}
+.btn-primary:hover {
+  background: var(--color-brand-400);
+  box-shadow: 0 8px 25px rgba(26, 171, 161, 0.25);
+  transform: translateY(-2px);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-display);
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.input-field {
+  width: 100%;
+  background: var(--color-dark-700);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: white;
+  font-family: var(--font-body);
+  transition: all 0.2s;
+  outline: none;
+}
+.input-field::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+.input-field:focus {
+  border-color: rgba(26, 171, 161, 0.5);
+  background: var(--color-dark-600);
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.glow {
+  box-shadow:
+    0 0 30px rgba(26, 171, 161, 0.2),
+    0 0 60px rgba(26, 171, 161, 0.1);
+}
+
+.text-glow {
+  text-shadow: 0 0 20px rgba(26, 171, 161, 0.5);
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(26, 171, 161, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 171, 161, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.scan-line {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #1aaba1, transparent);
+  animation: scan 2.5s linear infinite;
+  opacity: 0.6;
+}

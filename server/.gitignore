@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+.env
+*.h5
+*.hdf5
+models/
+.DS_Store

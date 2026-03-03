@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: braintumor-api
+    runtime: python
+    buildCommand: "./render-build.sh"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: MONGO_URL
+        sync: false
+      - key: DB_NAME
+        value: brain_tumor
+      - key: SECRET_KEY
+        sync: false
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 60
