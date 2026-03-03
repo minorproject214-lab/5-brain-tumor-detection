@@ -4,7 +4,6 @@ import {
   UploadCloud,
   Brain,
   CheckCircle,
-  AlertTriangle,
   X,
   BarChart2,
   RefreshCw,
@@ -13,6 +12,7 @@ import {
   Zap,
   Save,
   Edit2,
+  AlertTriangle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
@@ -45,9 +45,20 @@ const CLASS_COLORS = {
 };
 const ALL_CLASSES = ["Glioma", "Meningioma", "No Tumor", "Pituitary Tumor"];
 
-function ScanCard({ item, onRemove }) {
+const CLASS_INFO = {
+  Glioma:
+    "Gliomas arise from glial cells in the brain or spine. Among the most common primary brain tumors.",
+  Meningioma:
+    "Meningiomas arise from the meninges. Most are benign and slow-growing with good prognosis.",
+  "No Tumor":
+    "No tumor detected. The brain appears normal with no signs of abnormal growth.",
+  "Pituitary Tumor":
+    "Form in the pituitary gland at the base of the brain. Usually benign and treatable.",
+};
+
+function ScanCard({ item, onRemove, onClassify }) {
   const [expanded, setExpanded] = useState(false);
-  const c = item.result ? CLASS_COLORS[item.result.predicted_class] : null;
+  const c = item.predicted_class ? CLASS_COLORS[item.predicted_class] : null;
 
   return (
     <div
@@ -64,27 +75,11 @@ function ScanCard({ item, onRemove }) {
             alt="MRI"
             className="w-full h-full object-cover"
           />
-          {item.loading && (
-            <div
-              className="absolute inset-0 flex items-center justify-center"
-              style={{ background: "rgba(3,13,13,0.85)" }}
-            >
-              <div className="w-4 h-4 border-2 border-t-brand-500 border-white/20 rounded-full animate-spin" />
-            </div>
-          )}
-          {item.result && !item.loading && (
+          {item.predicted_class && (
             <div
               className={`absolute inset-0 ${c.bg} flex items-center justify-center`}
             >
               <CheckCircle size={16} className={c.text} />
-            </div>
-          )}
-          {item.error && (
-            <div
-              className="absolute inset-0 flex items-center justify-center"
-              style={{ background: "rgba(239,68,68,0.2)" }}
-            >
-              <AlertTriangle size={14} className="text-red-400" />
             </div>
           )}
         </div>
@@ -97,34 +92,39 @@ function ScanCard({ item, onRemove }) {
           <p className="text-white/25 font-mono text-xs mt-0.5">
             {(item.file.size / 1024).toFixed(1)} KB
           </p>
-          {item.result && (
+          {item.predicted_class ? (
             <div className="flex items-center gap-2 mt-1">
               <span
                 className={`text-xs font-mono px-1.5 py-0.5 rounded ${c.bg} ${c.text} border ${c.border}`}
               >
-                {item.result.predicted_class}
-              </span>
-              <span className={`text-xs font-mono ${c.text}`}>
-                {item.result.confidence.toFixed(1)}%
+                {item.predicted_class}
               </span>
             </div>
-          )}
-          {item.error && (
-            <p className="text-red-400 text-xs mt-1 truncate">{item.error}</p>
-          )}
-          {item.loading && (
-            <p className="text-brand-400 text-xs mt-1 font-mono animate-pulse">
-              Analyzing...
-            </p>
-          )}
-          {!item.result && !item.loading && !item.error && (
-            <p className="text-white/20 text-xs mt-1">Pending analysis</p>
+          ) : (
+            /* Class selector */
+            <select
+              onChange={(e) =>
+                e.target.value && onClassify(item.id, e.target.value)
+              }
+              defaultValue=""
+              className="mt-1.5 text-xs font-mono rounded-lg px-2 py-1 border border-white/10 text-white/50 focus:outline-none focus:border-brand-500/40"
+              style={{ background: "rgba(255,255,255,0.05)" }}
+            >
+              <option value="" disabled>
+                Select class...
+              </option>
+              {ALL_CLASSES.map((cls) => (
+                <option key={cls} value={cls} style={{ background: "#0d1f1f" }}>
+                  {cls}
+                </option>
+              ))}
+            </select>
           )}
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          {item.result && (
+          {item.predicted_class && (
             <button
               onClick={() => setExpanded(!expanded)}
               className="w-7 h-7 rounded-lg border border-white/10 flex items-center justify-center text-white/30 hover:text-white/70 transition-all"
@@ -143,60 +143,18 @@ function ScanCard({ item, onRemove }) {
         </div>
       </div>
 
-      {/* Expanded Result */}
-      {expanded && item.result && (
-        <div className="px-3 sm:px-4 pb-4 pt-1 border-t border-white/8 space-y-3">
-          <div>
-            <div className="flex justify-between mb-1.5">
-              <span className="text-white/40 font-mono text-xs">
-                Confidence
-              </span>
-              <span className={`font-mono text-xs ${c.text}`}>
-                {item.result.confidence.toFixed(2)}%
-              </span>
-            </div>
-            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-              <div
-                className={`h-full ${c.bar} rounded-full`}
-                style={{ width: `${item.result.confidence}%` }}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            {ALL_CLASSES.map((cls, i) => {
-              const pct = item.result.raw_prediction?.[i] || 0;
-              const cc = CLASS_COLORS[cls];
-              const isTop = cls === item.result.predicted_class;
-              return (
-                <div key={cls} className="flex items-center gap-2">
-                  <span
-                    className={`font-body text-xs w-28 flex-shrink-0 ${isTop ? "text-white" : "text-white/30"}`}
-                  >
-                    {cls}
-                  </span>
-                  <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${cc.bar} rounded-full`}
-                      style={{
-                        width: `${Math.min(pct, 100)}%`,
-                        opacity: isTop ? 1 : 0.3,
-                      }}
-                    />
-                  </div>
-                  <span
-                    className={`font-mono text-xs w-14 text-right ${isTop ? cc.text : "text-white/20"}`}
-                  >
-                    {pct.toFixed(2)}%
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-          {item.result.class_info?.description && (
-            <p className="text-white/30 font-body text-xs leading-relaxed border-t border-white/8 pt-3">
-              {item.result.class_info.description}
-            </p>
-          )}
+      {/* Expanded info */}
+      {expanded && item.predicted_class && (
+        <div className="px-3 sm:px-4 pb-4 pt-1 border-t border-white/8">
+          <p className="text-white/30 font-body text-xs leading-relaxed">
+            {CLASS_INFO[item.predicted_class]}
+          </p>
+          <button
+            onClick={() => onClassify(item.id, null)}
+            className="mt-2 text-xs text-white/20 hover:text-white/50 font-mono transition-colors"
+          >
+            ← Change classification
+          </button>
         </div>
       )}
     </div>
@@ -205,23 +163,20 @@ function ScanCard({ item, onRemove }) {
 
 export default function Upload() {
   const [items, setItems] = useState([]);
-  const [analyzing, setAnalyzing] = useState(false);
   const [sessionName, setSessionName] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const defaultSessionName = () =>
-    `Session ${new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`;
+    `Session ${new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`;
 
   const onDrop = useCallback((accepted) => {
     const newItems = accepted.map((file) => ({
       id: Math.random().toString(36).slice(2),
       file,
       preview: URL.createObjectURL(file),
-      loading: false,
-      result: null,
-      error: null,
+      predicted_class: null,
     }));
     setItems((prev) => [...prev, ...newItems]);
     setSaved(false);
@@ -238,72 +193,11 @@ export default function Upload() {
     setSaved(false);
   };
 
-  const analyzeOne = async (item) => {
+  const classifyItem = (id, cls) => {
     setItems((prev) =>
-      prev.map((i) =>
-        i.id === item.id ? { ...i, loading: true, error: null } : i,
-      ),
+      prev.map((i) => (i.id === id ? { ...i, predicted_class: cls } : i)),
     );
-    try {
-      const formData = new FormData();
-      formData.append("file", item.file);
-      const res = await api.post("/predict", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === item.id ? { ...i, loading: false, result: res.data } : i,
-        ),
-      );
-    } catch (err) {
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === item.id
-            ? {
-                ...i,
-                loading: false,
-                error: err.response?.data?.detail || "Failed to analyze",
-              }
-            : i,
-        ),
-      );
-    }
-  };
-
-  const analyzeAll = async () => {
-    const pending = items.filter((i) => !i.result && !i.loading);
-    if (!pending.length) return;
-    setAnalyzing(true);
     setSaved(false);
-    for (const item of pending) {
-      await analyzeOne(item);
-    }
-    setAnalyzing(false);
-  };
-
-  const saveSession = async () => {
-    const done = items.filter((i) => i.result);
-    if (!done.length) return;
-    setSaving(true);
-    try {
-      const scans = done.map((i) => ({
-        filename: i.file.name,
-        predicted_class: i.result.predicted_class,
-        confidence: i.result.confidence,
-        raw_prediction: i.result.raw_prediction,
-        class_info: i.result.class_info,
-        image_base64: i.result.image_base64,
-      }));
-      await api.post("/sessions", {
-        session_name: sessionName || defaultSessionName(),
-        scans,
-      });
-      setSaved(true);
-    } catch (err) {
-      alert("Failed to save session");
-    } finally {
-      setSaving(false);
-    }
   };
 
   const clearAll = () => {
@@ -312,10 +206,44 @@ export default function Upload() {
     setSessionName("");
   };
 
-  const pending = items.filter((i) => !i.result && !i.loading);
-  const done = items.filter((i) => i.result);
-  const loadingItems = items.filter((i) => i.loading);
-  const allDone = items.length > 0 && done.length === items.length;
+  const toBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const saveSession = async () => {
+    const classified = items.filter((i) => i.predicted_class);
+    if (!classified.length) return;
+    setSaving(true);
+    try {
+      const scans = await Promise.all(
+        classified.map(async (i) => ({
+          filename: i.file.name,
+          predicted_class: i.predicted_class,
+          confidence: null,
+          raw_prediction: [],
+          class_info: { description: CLASS_INFO[i.predicted_class] },
+          image_base64: await toBase64(i.file),
+        })),
+      );
+      await api.post("/sessions", {
+        session_name: sessionName || defaultSessionName(),
+        scans,
+      });
+      setSaved(true);
+    } catch {
+      alert("Failed to save session");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const classified = items.filter((i) => i.predicted_class);
+  const unclassified = items.filter((i) => !i.predicted_class);
+  const allClassified = items.length > 0 && classified.length === items.length;
 
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
@@ -323,18 +251,21 @@ export default function Upload() {
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-700 text-white">
-            MRI Scan Analysis
+            MRI Scan Upload
           </h1>
           <p className="text-white/40 font-body mt-1 text-sm">
-            Upload multiple MRI images — analyze and save as a session
+            Upload MRI images, classify each one, then save as a session
           </p>
         </div>
-        {done.length > 0 && (
+        {classified.length > 0 && (
           <div className="flex items-center gap-2">
             {saved ? (
-              <span className="flex items-center gap-1.5 text-green-400 text-sm font-mono">
-                <CheckCircle size={14} /> Session saved
-              </span>
+              <Link
+                to="/reports"
+                className="flex items-center gap-1.5 text-green-400 text-sm font-mono hover:text-green-300 transition-colors"
+              >
+                <CheckCircle size={14} /> View in Reports →
+              </Link>
             ) : (
               <button
                 onClick={saveSession}
@@ -353,9 +284,9 @@ export default function Upload() {
         )}
       </div>
 
-      {/* Session name editor */}
+      {/* Session name */}
       {items.length > 0 && (
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4">
           {editingName ? (
             <input
               autoFocus
@@ -369,16 +300,16 @@ export default function Upload() {
           ) : (
             <button
               onClick={() => setEditingName(true)}
-              className="flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors text-sm font-body"
+              className="flex items-center gap-2 text-white/35 hover:text-white/60 transition-colors text-sm font-body"
             >
               <Edit2 size={12} />
-              <span>{sessionName || defaultSessionName()}</span>
+              {sessionName || defaultSessionName()}
             </button>
           )}
         </div>
       )}
 
-      {/* Drop zone */}
+      {/* Dropzone */}
       <div
         {...getRootProps()}
         className={`rounded-2xl border-2 border-dashed p-6 sm:p-10 text-center cursor-pointer transition-all duration-300 mb-4 ${
@@ -390,7 +321,7 @@ export default function Upload() {
         <input {...getInputProps()} />
         <div className="flex flex-col items-center gap-3">
           <div
-            className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center border border-brand-500/20"
+            className="w-12 h-12 rounded-2xl flex items-center justify-center border border-brand-500/20"
             style={{ background: "rgba(26,171,161,0.1)" }}
           >
             <UploadCloud size={22} className="text-brand-400" />
@@ -416,50 +347,49 @@ export default function Upload() {
             <span>
               {items.length} image{items.length !== 1 ? "s" : ""}
             </span>
-            {done.length > 0 && (
-              <span className="text-green-400">· {done.length} done</span>
-            )}
-            {loadingItems.length > 0 && (
-              <span className="text-brand-400">
-                · {loadingItems.length} analyzing
+            {classified.length > 0 && (
+              <span className="text-green-400">
+                · {classified.length} classified
               </span>
             )}
-            {pending.length > 0 && (
-              <span className="text-white/20">· {pending.length} pending</span>
+            {unclassified.length > 0 && (
+              <span className="text-white/20">
+                · {unclassified.length} pending
+              </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={clearAll}
-              disabled={analyzing}
-              className="btn-ghost flex items-center gap-1.5 text-xs py-2 px-3"
-            >
-              <RefreshCw size={12} />
-              Clear All
-            </button>
-            {pending.length > 0 && (
-              <button
-                onClick={analyzeAll}
-                disabled={analyzing}
-                className="btn-primary flex items-center gap-1.5 text-xs py-2 px-4"
-              >
-                {analyzing ? (
-                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Zap size={13} />
-                )}
-                {analyzing ? "Analyzing..." : `Analyze All (${pending.length})`}
-              </button>
-            )}
-          </div>
+          <button
+            onClick={clearAll}
+            className="btn-ghost flex items-center gap-1.5 text-xs py-2 px-3"
+          >
+            <RefreshCw size={12} />
+            Clear All
+          </button>
         </div>
       )}
 
-      {/* Items grid */}
+      {/* Notice */}
+      {items.length > 0 && unclassified.length > 0 && (
+        <div
+          className="mb-4 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-brand-500/20 text-brand-400 text-xs font-body"
+          style={{ background: "rgba(26,171,161,0.05)" }}
+        >
+          <AlertTriangle size={13} />
+          Select a classification for each image using the dropdown, then save
+          as a session.
+        </div>
+      )}
+
+      {/* Grid */}
       {items.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {items.map((item) => (
-            <ScanCard key={item.id} item={item} onRemove={removeItem} />
+            <ScanCard
+              key={item.id}
+              item={item}
+              onRemove={removeItem}
+              onClassify={classifyItem}
+            />
           ))}
         </div>
       ) : (
@@ -471,9 +401,9 @@ export default function Upload() {
             <ul className="space-y-2">
               {[
                 "Upload one or multiple MRI brain scan images",
-                'Click "Analyze All" to classify all at once',
+                "Select the classification for each image",
                 "Give your session a name (optional)",
-                'Click "Save Session" to store it in Reports',
+                'Click "Save Session" to store in Reports',
               ].map((tip, i) => (
                 <li
                   key={i}
@@ -496,18 +426,18 @@ export default function Upload() {
             </div>
             <div className="text-center">
               <p className="font-display font-500 text-white/20 text-sm">
-                Results saved as sessions
+                Sessions saved to Reports
               </p>
               <p className="text-white/15 font-body text-xs mt-1">
-                Each batch you save appears in Reports
+                Each saved batch appears in your Reports page
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Summary when all done */}
-      {allDone && (
+      {/* Summary */}
+      {allClassified && !saved && (
         <div
           className="mt-6 card border border-brand-500/20"
           style={{ background: "rgba(26,171,161,0.05)" }}
@@ -516,37 +446,26 @@ export default function Upload() {
             <div className="flex items-center gap-2">
               <CheckCircle size={15} className="text-brand-400" />
               <span className="text-brand-400 font-mono text-xs uppercase tracking-wider">
-                Analysis Complete — {done.length} image
-                {done.length !== 1 ? "s" : ""}
+                All {items.length} images classified
               </span>
             </div>
-            {!saved && (
-              <button
-                onClick={saveSession}
-                disabled={saving}
-                className="btn-primary flex items-center gap-2 text-xs py-2 px-3"
-              >
-                {saving ? (
-                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Save size={13} />
-                )}
-                {saving ? "Saving..." : "Save Session"}
-              </button>
-            )}
-            {saved && (
-              <Link
-                to="/reports"
-                className="text-green-400 text-xs font-mono flex items-center gap-1.5 hover:text-green-300 transition-colors"
-              >
-                <CheckCircle size={12} /> View in Reports →
-              </Link>
-            )}
+            <button
+              onClick={saveSession}
+              disabled={saving}
+              className="btn-primary flex items-center gap-2 text-xs py-2 px-3"
+            >
+              {saving ? (
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Save size={13} />
+              )}
+              {saving ? "Saving..." : "Save Session"}
+            </button>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {ALL_CLASSES.map((cls) => {
-              const count = done.filter(
-                (i) => i.result.predicted_class === cls,
+              const count = classified.filter(
+                (i) => i.predicted_class === cls,
               ).length;
               const cc = CLASS_COLORS[cls];
               return (
